@@ -84,13 +84,20 @@ bool Parsers::LootItem::Parse(
   std::list<int8_t> lootedSlots;
   std::unordered_map<uint32_t, uint32_t> lootedItems;
 
-  if (lBox && !cState->CanInteract(lState)) {
+  // We will only use a distance check here, because the Auto-Loot function can
+  // go through walls.
+  if (lBox &&
+      (cState->GetDistance(lState->GetCurrentX(), lState->GetCurrentY()) >
+       MAX_LOOT_DISTANCE)) {
     // They can't actually make this interaction. Ignore it.
     LogGeneralWarning([&]() {
       return libcomp::String(
-                 "Player is either too far from lootable entity in zone %1 to "
-                 "loot or does not have line of sight: %2\n")
+                 "Player is either too far from a lootable entity in zone %1 "
+                 "(distance: %2) to loot it or does not have line of sight to "
+                 "it: %3\n")
           .Arg(zone->GetDefinitionID())
+          .Arg(
+              cState->GetDistance(lState->GetCurrentX(), lState->GetCurrentY()))
           .Arg(state->GetAccountUID().ToString());
     });
   } else if (lBox && ((lBox->ValidLooterIDsCount() == 0 &&

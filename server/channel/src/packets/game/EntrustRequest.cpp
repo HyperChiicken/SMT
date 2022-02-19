@@ -100,7 +100,7 @@ bool Parsers::EntrustRequest::Parse(
       (targetClient != client &&
        cState->GetDistance(targetCState->GetCurrentX(),
                            targetCState->GetCurrentY()) >
-           MAX_DISTANCE_ENTRUST)) {
+           MAX_ENTRUST_DISTANCE)) {
     reply.WriteS32Little(-1);
 
     client->SendPacket(reply);

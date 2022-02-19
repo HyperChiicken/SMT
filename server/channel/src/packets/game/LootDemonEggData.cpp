@@ -68,14 +68,16 @@ bool Parsers::LootDemonEggData::Parse(
   auto lState = zone ? zone->GetLootBox(lootEntityID) : nullptr;
   auto enemy = lState ? lState->GetEntity()->GetEnemy() : nullptr;
 
-  if (enemy && !cState->CanInteract(lState)) {
+  if (enemy && !cState->CanInteract(lState, MAX_LOOT_DISTANCE)) {
     // They can't actually make this interaction. Ignore it.
     LogGeneralWarning([&]() {
       return libcomp::String(
-                 "Player is either too far from a demon egg in zone %1 to "
-                 "retrieve its information or does not have line of sight: "
-                 "%2\n")
+                 "Player is either too far from a demon egg in zone %1 "
+                 "(distance: %2) to retrieve its information or does not have "
+                 "line of sight to it: %3\n")
           .Arg(zone->GetDefinitionID())
+          .Arg(
+              cState->GetDistance(lState->GetCurrentX(), lState->GetCurrentY()))
           .Arg(state->GetAccountUID().ToString());
     });
   } else if (enemy) {

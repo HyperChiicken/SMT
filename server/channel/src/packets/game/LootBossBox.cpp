@@ -72,17 +72,20 @@ bool Parsers::LootBossBox::Parse(
   reply.WriteS32Little(entityID);
   reply.WriteS32Little(lootEntityID);
 
-  if (!cState->CanInteract(lState)) {
-    // They can't actually make this interaction. Send a reply of failure.
+  if (!cState->CanInteract(lState, MAX_LOOT_DISTANCE)) {
+    // They can't actually make this interaction. Send a failure notification.
     LogGeneralWarning([&]() {
       return libcomp::String(
-                 "Player is either too far from boss lootbox in zone %1 to "
-                 "loot or does not have line of sight: %2\n")
+                 "Player is either too far from boss lootbox in zone %1 "
+                 "(distance: %2) to loot it or does not have line of "
+                 "sight to it: %3\n")
           .Arg(zone->GetDefinitionID())
+          .Arg(
+              cState->GetDistance(lState->GetCurrentX(), lState->GetCurrentY()))
           .Arg(state->GetAccountUID().ToString());
     });
 
-    reply.WriteS8(-1);  // One person, one box error
+    reply.WriteS8(-1);  // Failure
 
     client->SendPacket(reply);
   } else if (zone->ClaimBossBox(lootEntityID, state->GetWorldCID())) {

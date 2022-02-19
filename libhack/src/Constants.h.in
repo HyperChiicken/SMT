@@ -256,6 +256,15 @@ static constexpr double PI = 3.14159265358979323846;
 /// Maximum distance allowed for (non-GM) characters to interact with an object
 #define MAX_INTERACT_DISTANCE (600.f)
 
+/// Maximum distance allowed for character to loot an item from an object
+#define MAX_LOOT_DISTANCE (2000.f)
+
+/// Maximum distance allowed for a request to initiate Trade
+#define MAX_TRADE_DISTANCE (1200.f)
+
+/// Maximum distance allowed for an Entrust request
+#define MAX_ENTRUST_DISTANCE (700.f)
+
 /// Hitbox size of player character entities which do not have a defined
 /// DevilData entry
 #define PLAYER_HITBOX_SIZE (12)
@@ -584,12 +593,6 @@ static constexpr double PI = 3.14159265358979323846;
 /// Number of points required for a demon force value to increase a stat by
 /// 1 point (ex: 300000 points equals 3 stat points).
 #define DEMON_FORCE_PRECISION (100000)
-
-/// Maximum distance allowed for a request to initiate Trade
-#define MAX_DISTANCE_TRADE (1200.f)
-
-/// Maximum distance allowed for an Entrust request
-#define MAX_DISTANCE_ENTRUST (700.f)
 
 /// Experience required to proceed from the indexed level to the next
 static const unsigned long long LEVEL_XP_REQUIREMENTS[] = {
