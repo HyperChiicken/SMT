@@ -1109,7 +1109,7 @@ bool ChatManager::GMCommand_DemonForce(
         return SendChatMessage(client, ChatType_t::CHAT_SELF,
                                "Target must have a demon summoned.");
       } else {
-        targetDemon->SetForceStack((size_t)stackSlot, forceStackID);
+        targetDemon->SetForceStack((size_t)(stackSlot - 1), forceStackID);
         server->GetWorldDatabase()->QueueUpdate(targetDemon,
                                                 targetState->GetAccountUID());
         targetDState->UpdateDemonState(definitionManager);
