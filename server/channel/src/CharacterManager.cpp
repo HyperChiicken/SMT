@@ -2689,7 +2689,7 @@ std::list<std::shared_ptr<objects::ItemDrop>> CharacterManager::DetermineDrops(
   }
 
   auto sharedConfig = mServer.lock()->GetWorldSharedConfig();
-  float globalDropBonus = sharedConfig->GetDropRateBonus();
+  float globalDropBonus = sharedConfig->GetDropRateBonus() / 100.0f;
   float scalingCap = sharedConfig->GetDropLuckScalingCap();
 
   for (auto drop : drops) {
