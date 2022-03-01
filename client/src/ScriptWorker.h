@@ -28,6 +28,7 @@
 #define LIBCLIENT_SRC_SCRIPTWORKER_H
 
 // libcomp Includes
+#include <EnumMap.h>
 #include <Object.h>
 #include <Packet.h>
 #include <Worker.h>
@@ -267,11 +268,11 @@ class ScriptWorker : public libcomp::Worker,
       mScriptCallback;
 
   /// Script callbacks for messages.
-  std::unordered_multimap<libcomp::Message::MessageType, Sqrat::Function>
+  libcomp::EnumMultiMap<libcomp::Message::MessageType, Sqrat::Function>
       mMessageCallbacks;
 
   /// Script callbacks for messages.
-  std::unordered_multimap<libcomp::Message::MessageClientType, Sqrat::Function>
+  libcomp::EnumMultiMap<libcomp::Message::MessageClientType, Sqrat::Function>
       mClientMessageCallbacks;
 
   /// List of script files that have been loaded.
