@@ -129,9 +129,9 @@ jobs:
       with:
         report_paths: tests/results.xml
 
-  win32-msvc2017-build:
-    name: Windows 32-bit (MSVC 2017)
-    runs-on: windows-2016
+  win32-msvc2022-build:
+    name: Windows 32-bit (MSVC 2022)
+    runs-on: windows-latest
     needs: clang-format
     steps:
     - name: Checkout Code
@@ -141,9 +141,11 @@ jobs:
     - name: Build Project
       env:
         PLATFORM: win32
-        COMPILER: msvc2017
+        COMPILER: msvc2022
+        COMPILER_EXTERNAL: msvc2017
         MSPLATFORM: Win32
-        GENERATOR: Visual Studio 15 2017
+        GENERATOR: Visual Studio 17 2022
+        ARCHITECTURE: Win32
         CONFIGURATION: RelWithDebInfo
         OPENSSL_ROOT_DIR: C:/Program Files (x86)/OpenSSL-Win32
         QT_EXTRACT_DIR: C:/Qt/5.12.3
@@ -179,9 +181,9 @@ jobs:
         asset_name: ${{ steps.get_zip_asset_filename.outputs.filename }}
         asset_content_type: application/zip
 
-  win64-msvc2017-build:
-    name: Windows 64-bit (MSVC 2017)
-    runs-on: windows-2016
+  win64-msvc2022-build:
+    name: Windows 64-bit (MSVC 2022)
+    runs-on: windows-latest
     needs: clang-format
     steps:
     - name: Checkout Code
@@ -191,9 +193,11 @@ jobs:
     - name: Build Project
       env:
         PLATFORM: win64
-        COMPILER: msvc2017
+        COMPILER: msvc2022
+        COMPILER_EXTERNAL: msvc2017
         MSPLATFORM: x64
-        GENERATOR: Visual Studio 15 2017 Win64
+        GENERATOR: Visual Studio 17 2022
+        ARCHITECTURE: x64
         CONFIGURATION: RelWithDebInfo
         OPENSSL_ROOT_DIR: C:/Program Files/OpenSSL-Win64
         QT_EXTRACT_DIR: C:/Qt/5.12.3
@@ -253,12 +257,12 @@ jobs:
       - clang-format
       - linux-gcc-build
       - linux-clang-build
-      - win32-msvc2017-build
-      - win64-msvc2017-build
+      - win32-msvc2022-build
+      - win64-msvc2022-build
     steps:
       - name: Pipeline Passed
         id: pipeline-passed
-        if: ${{ (needs.docs.result == 'success' || needs.docs.result == 'skipped') && ((needs.clang-format.result == 'success' && needs.linux-gcc-build.result == 'success' && needs.linux-clang-build.result == 'success' && needs.win32-msvc2017-build.result == 'success' && needs.win64-msvc2017-build.result == 'success') || (needs.clang-format.result == 'skipped' && needs.linux-gcc-build.result == 'skipped' && needs.linux-clang-build.result == 'skipped' && needs.win32-msvc2017-build.result == 'skipped' && needs.win64-msvc2017-build.result == 'skipped')) }}
+        if: ${{ (needs.docs.result == 'success' || needs.docs.result == 'skipped') && ((needs.clang-format.result == 'success' && needs.linux-gcc-build.result == 'success' && needs.linux-clang-build.result == 'success' && needs.win32-msvc2022-build.result == 'success' && needs.win64-msvc2022-build.result == 'success') || (needs.clang-format.result == 'skipped' && needs.linux-gcc-build.result == 'skipped' && needs.linux-clang-build.result == 'skipped' && needs.win32-msvc2022-build.result == 'skipped' && needs.win64-msvc2022-build.result == 'skipped')) }}
         run: echo "Pipeline Passed"
       - name: Pipeline Failed
         id: pipeline-failed
