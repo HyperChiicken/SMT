@@ -629,13 +629,15 @@ class ZoneManager {
    *  if false they will be normal spawns
    * @param defeatActions List of defeat actions to fire when the enemies
    *  are killed, should the be spawned in as an encounter
+   * @param spawnGraphicType Optional spawn graphic type
    * @return true if the enemies were added successfully, false if an error
    *  occurred
    */
   bool AddEnemiesToZone(
       const std::list<std::shared_ptr<ActiveEntityState>>& eStates,
       const std::shared_ptr<Zone>& zone, bool staggerSpawn, bool asEncounter,
-      const std::list<std::shared_ptr<objects::Action>>& defeatActions);
+      const std::list<std::shared_ptr<objects::Action>>& defeatActions,
+      int32_t spawnGraphicType = -1);
 
   /**
    * Add enemies (or allies) already created in the zone, prepare AI and
@@ -651,12 +653,14 @@ class ZoneManager {
    *  if false they will be normal spawns
    * @param defeatEventID Event ID to fire from an action when the encounter
    *  is defeated
+   * @param spawnGraphicType Optional spawn graphic type
    * @return true if the enemies were added successfully, false if an error
    *  occurred
    */
   bool AddEnemiesToZone(std::list<std::shared_ptr<ActiveEntityState>> eStates,
                         const std::shared_ptr<Zone>& zone, bool staggerSpawn,
-                        bool asEncounter, const libcomp::String& defeatEventID);
+                        bool asEncounter, const libcomp::String& defeatEventID,
+                        int32_t spawnGraphicType = -1);
 
   /**
    * Move the supplied entity from its current position to the supplied
@@ -1248,12 +1252,14 @@ class ZoneManager {
    * @param client Pointer to the client connection to send to if specified
    *  instead of the whole zone
    * @param zone Pointer to the zone where the ally exists
-   * @param queue true if the message should be queued, false if
-   *  it should send right away
+   * @param queue true if the message should be queued, false if it should send
+   * right away
+   * @param spawnGraphicType Optional spawn graphic type
    */
   void SendAllyData(const std::shared_ptr<AllyState>& allyState,
                     const std::shared_ptr<ChannelClientConnection>& client,
-                    const std::shared_ptr<Zone>& zone, bool queue = false);
+                    const std::shared_ptr<Zone>& zone, bool queue = false,
+                    int32_t spawnGraphicType = -1);
 
   /**
    * Schedule instance access time-out and remove the instance if no

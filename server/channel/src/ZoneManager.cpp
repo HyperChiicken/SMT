@@ -143,8 +143,8 @@ BaseScriptEngine& BaseScriptEngine::Using<ZoneManager>() {
                                                    &ZoneManager::CreateEnemy)
         .Func<bool (ZoneManager::*)(
             std::list<std::shared_ptr<ActiveEntityState>>,
-            const std::shared_ptr<Zone>&, bool, bool, const libcomp::String&)>(
-            "AddEnemiesToZone", &ZoneManager::AddEnemiesToZone)
+            const std::shared_ptr<Zone>&, bool, bool, const libcomp::String&,
+            int32_t)>("AddEnemiesToZone", &ZoneManager::AddEnemiesToZone)
         .Func("LinearReposition", &ZoneManager::LinearReposition)
         .Func("RemoveEntitiesFromZone", &ZoneManager::RemoveEntitiesFromZone)
         .Func("StartZoneEvent", &ZoneManager::StartZoneEvent);
@@ -2371,7 +2371,7 @@ void ZoneManager::SendEnemyData(
 void ZoneManager::SendAllyData(
     const std::shared_ptr<AllyState>& allyState,
     const std::shared_ptr<ChannelClientConnection>& client,
-    const std::shared_ptr<Zone>& zone, bool queue) {
+    const std::shared_ptr<Zone>& zone, bool queue, int32_t spawnGraphicType) {
   std::list<std::shared_ptr<ChannelClientConnection>> clients;
   if (client) {
     clients.push_back(client);
@@ -2446,10 +2446,16 @@ void ZoneManager::SendAllyData(
         p.WritePacketCode(ChannelToClientPacketCode_t::PACKET_ENEMY_DATA);
       }
 
+      // If a spawnGraphicType has been specified, apply it. Else check for
+      // singular client to send to. 2 is Demon Partner, 3 is enemy,
+      // 4 is bike, 5 is exceptionally large enemy like Satan's parts
+      int32_t spawnGraphic = (spawnGraphicType > -1 && spawnGraphicType < 6)
+                                 ? spawnGraphicType
+                                 : ((!client) ? 3 : 0);
       for (auto fClient : faction) {
         fClient->QueuePacketCopy(p);
-        PopEntityForProduction(fClient, allyState->GetEntityID(),
-                               !client ? 3 : 0, true);
+        PopEntityForProduction(fClient, allyState->GetEntityID(), spawnGraphic,
+                               true);
         ShowEntity(fClient, allyState->GetEntityID(), true);
       }
 
@@ -3026,7 +3032,8 @@ bool ZoneManager::CopyDemon(const std::shared_ptr<ActiveEntityState>& eState,
 bool ZoneManager::AddEnemiesToZone(
     const std::list<std::shared_ptr<ActiveEntityState>>& eStates,
     const std::shared_ptr<Zone>& zone, bool staggerSpawn, bool asEncounter,
-    const std::list<std::shared_ptr<objects::Action>>& defeatActions) {
+    const std::list<std::shared_ptr<objects::Action>>& defeatActions,
+    int32_t spawnGraphicType) {
   if (!zone) {
     return false;
   }
@@ -3126,7 +3133,7 @@ bool ZoneManager::AddEnemiesToZone(
         SendEnemyData(e, nullptr, zone, false, false);
       } else {
         auto a = std::dynamic_pointer_cast<AllyState>(eState);
-        SendAllyData(a, nullptr, zone, false);
+        SendAllyData(a, nullptr, zone, false, spawnGraphicType);
       }
     }
   }
@@ -3137,7 +3144,7 @@ bool ZoneManager::AddEnemiesToZone(
 bool ZoneManager::AddEnemiesToZone(
     std::list<std::shared_ptr<ActiveEntityState>> eStates,
     const std::shared_ptr<Zone>& zone, bool staggerSpawn, bool asEncounter,
-    const libcomp::String& defeatEventID) {
+    const libcomp::String& defeatEventID, int32_t spawnGraphicType) {
   if (!zone) {
     return false;
   }
@@ -3170,7 +3177,7 @@ bool ZoneManager::AddEnemiesToZone(
   }
 
   return AddEnemiesToZone(eStates, zone, staggerSpawn, asEncounter,
-                          defeatActions);
+                          defeatActions, spawnGraphicType);
 }
 
 bool ZoneManager::LinearReposition(
