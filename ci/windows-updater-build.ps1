@@ -30,7 +30,7 @@ New-Item -ItemType directory -Path build | Out-Null
 Set-Location build
 
 Write-Output "Running cmake"
-cmake -DCMAKE_INSTALL_PREFIX="${ROOT_DIR}/build/install" -DGENERATE_DOCUMENTATION=OFF -DUPDATER_ONLY=ON -DCMAKE_CUSTOM_CONFIGURATION_TYPES="${env:CONFIGURATION}" -G"${env:GENERATOR}" -A "${env:ARCHITECTURE}" ..
+cmake -DCMAKE_INSTALL_PREFIX="${ROOT_DIR}/build/install" -DGENERATE_DOCUMENTATION=OFF -DUPDATER_ONLY=ON -DCMAKE_CUSTOM_CONFIGURATION_TYPES="${env:CONFIGURATION}" -G"${env:GENERATOR}" "${env:ARCHITECTURE}" ..
 
 Write-Output "Running build"
 cmake --build . --config "${env:CONFIGURATION}"

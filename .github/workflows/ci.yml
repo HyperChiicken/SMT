@@ -145,7 +145,7 @@ jobs:
         COMPILER_EXTERNAL: msvc2017
         MSPLATFORM: Win32
         GENERATOR: Visual Studio 17 2022
-        ARCHITECTURE: Win32
+        ARCHITECTURE: '-AWin32'
         CONFIGURATION: RelWithDebInfo
         OPENSSL_ROOT_DIR: C:/Program Files (x86)/OpenSSL-Win32
         QT_EXTRACT_DIR: C:/Qt/5.12.3
@@ -197,7 +197,7 @@ jobs:
         COMPILER_EXTERNAL: msvc2017
         MSPLATFORM: x64
         GENERATOR: Visual Studio 17 2022
-        ARCHITECTURE: x64
+        ARCHITECTURE: '-Ax64'
         CONFIGURATION: RelWithDebInfo
         OPENSSL_ROOT_DIR: C:/Program Files/OpenSSL-Win64
         QT_EXTRACT_DIR: C:/Qt/5.12.3
