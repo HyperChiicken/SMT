@@ -260,10 +260,10 @@ class CharacterState : public ActiveEntityStateImp<objects::Character> {
    * disabled.
    * @param definitionManager Pointer to the DefinitionManager to use when
    *  determining skill definitions
-   * @return true if the set of disabled skills has been updated, false if it
-   *  has not
+   * @return the set of newly disabled skills
    */
-  bool RecalcDisabledSkills(libhack::DefinitionManager* definitionManager);
+  std::set<uint32_t> RecalcDisabledSkills(
+      libhack::DefinitionManager* definitionManager);
 
   virtual const libobjgen::UUID GetEntityUUID();
 

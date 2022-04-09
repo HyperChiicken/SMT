@@ -31,6 +31,7 @@
 #include <DefinitionManager.h>
 #include <ScriptEngine.h>
 #include <ServerConstants.h>
+#include <Utils.h>
 
 // objects Includes
 #include <AccountWorldData.h>
@@ -822,11 +823,11 @@ uint32_t CharacterState::GetReunionPoints(bool mitama) {
   return 0;
 }
 
-bool CharacterState::RecalcDisabledSkills(
+std::set<uint32_t> CharacterState::RecalcDisabledSkills(
     libhack::DefinitionManager* definitionManager) {
   auto character = GetEntity();
   if (!character) {
-    return false;
+    return std::set<uint32_t>();
   }
 
   std::lock_guard<std::mutex> lock(mLock);
@@ -868,9 +869,14 @@ bool CharacterState::RecalcDisabledSkills(
   }
 
   SetDisabledSkills(disabledSkills);
+  std::set<uint32_t> disabledSkillAdditions = std::set<uint32_t>();
+  if (newSkillDisabled) {
+    std::set<uint32_t> disabledSkillRemovals = std::set<uint32_t>();
+    set_diff<uint32_t>(disabledSkills, currentDisabledSkills,
+                       disabledSkillAdditions, disabledSkillRemovals);
+  }
 
-  return newSkillDisabled ||
-         disabledSkills.size() != currentDisabledSkills.size();
+  return disabledSkillAdditions;
 }
 
 const libobjgen::UUID CharacterState::GetEntityUUID() {

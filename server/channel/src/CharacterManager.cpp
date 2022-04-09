@@ -4981,7 +4981,29 @@ void CharacterManager::UpdateExpertisePoints(
 
   if (rankChanged) {
     // Expertises can be used as multipliers and conditions, always recalc
-    cState->RecalcDisabledSkills(definitionManager);
+    auto newDisabledSkills = cState->RecalcDisabledSkills(definitionManager);
+    if (!newDisabledSkills.empty()) {
+      // Deactivate active switch skills that have just been disabled.
+      for (uint32_t switchSkillID : newDisabledSkills) {
+        if (cState->ActiveSwitchSkillsContains(switchSkillID)) {
+          cState->RemoveActiveSwitchSkills(switchSkillID);
+          character->RemoveSavedSwitchSkills(switchSkillID);
+
+          libcomp::Packet p;
+          p.WritePacketCode(ChannelToClientPacketCode_t::PACKET_SKILL_SWITCH);
+          p.WriteS32Little(cState->GetEntityID());
+          p.WriteU32Little(switchSkillID);
+          p.WriteS8(0);
+
+          client->QueuePacket(p);
+        }
+      }
+
+      // Disabling skills via expertise loss sends out packets readding the
+      // skills for some reason.
+      SendUpdatedSkill(client, cState, newDisabledSkills, std::set<uint32_t>(),
+                       false);
+    }
     state->GetDemonState()->UpdateDemonState(definitionManager);
     RecalculateTokuseiAndStats(cState, client);
   }

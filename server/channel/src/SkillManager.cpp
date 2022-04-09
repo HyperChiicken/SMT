@@ -10797,7 +10797,9 @@ bool SkillManager::ForgetAllExpertiseSkills(
 
   cState->RecalcDisabledSkills(definitionManager);
   state->GetDemonState()->UpdateDemonState(definitionManager);
-  server->GetCharacterManager()->RecalculateTokuseiAndStats(cState, client);
+  auto characterManager = server->GetCharacterManager();
+  characterManager->RecalculateTokuseiAndStats(cState, client);
+  characterManager->SendUpdatedSkillList(client, cState, false);
 
   server->GetWorldDatabase()->QueueUpdate(character, state->GetAccountUID());
 
