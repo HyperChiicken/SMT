@@ -75,84 +75,20 @@ void HandleMitamaReunion(const std::shared_ptr<ChannelServer> server,
 
   bool isMitama = characterManager->IsMitamaDemon(demonData);
 
-  int8_t bonusID = 0;
-  size_t newIdx = 0;
-
-  uint8_t mPoints = (uint8_t)(demon ? (12 + demon->GetMitamaRank()) : 0);
-
   bool success = demon && mitama && demon != mitama && isMitama && mitamaData &&
                  reunionIdx >= 0 && reunionIdx < 12;
+  size_t mitamaIdx =
+      success ? fusionManager->GetMitamaIndex(
+                    mitamaData->GetUnionData()->GetBaseDemonID(), success)
+              : 0;
+
   if (success) {
-    auto reunion = demon->GetReunion();
-    auto mReunion = demon->GetMitamaReunion();
+    auto dbChanges = libcomp::DatabaseChangeSet::Create(state->GetAccountUID());
 
-    // Check default growth type rank 1
-    auto defaultGrowthType = definitionManager->GetDevilLVUpRateData(
-        demonData->GetGrowth()->GetGrowthType());
-    if (defaultGrowthType && defaultGrowthType->GetGroupID() > 0 &&
-        reunion[(size_t)(defaultGrowthType->GetGroupID() - 1)] == 0) {
-      reunion[(size_t)(defaultGrowthType->GetGroupID() - 1)] = 1;
-    }
-
-    int8_t rTotal = 0;
-    std::array<uint8_t, 4> mitamaTotals = {{0, 0, 0, 0}};
-    for (size_t i = 0; i < 96; i++) {
-      uint8_t bonus = mReunion[i];
-      if (bonus) {
-        uint8_t idx = (uint8_t)(bonus / 32);
-        mitamaTotals[idx]++;
-
-        if ((int32_t)(i / 8) == (int32_t)reunionIdx) {
-          rTotal++;
-        }
-      }
-    }
-
-    size_t mitamaIdx = fusionManager->GetMitamaIndex(
-        mitamaData->GetUnionData()->GetBaseDemonID(), success);
-
-    success &= mitamaTotals[mitamaIdx] < mPoints &&
-               rTotal < reunion[(size_t)reunionIdx];
-    if (success) {
-      // Generate bonus
-      uint32_t startIdx = (uint32_t)(mitamaIdx * 32);
-
-      std::list<std::shared_ptr<objects::MiMitamaReunionBonusData>> bonuses;
-      for (uint32_t i = startIdx; i < (uint32_t)(startIdx + 32); i++) {
-        auto bonus = definitionManager->GetMitamaReunionBonusData(i);
-        if (bonus && bonus->GetValue() > 0) {
-          bonuses.push_back(bonus);
-        }
-      }
-
-      auto bonus = libcomp::Randomizer::GetEntry(bonuses);
-      if (bonus) {
-        bonusID = (int8_t)bonus->GetID();
-      } else {
-        success = false;
-      }
-    }
+    success = characterManager->DoMitamaReunion(cState, (uint8_t)mitamaIdx,
+                                                reunionIdx, dbChanges, false);
 
     if (success) {
-      // Request valid, pay the cost
-      std::unordered_map<uint32_t, uint64_t> compressibleItemCosts;
-      compressibleItemCosts[SVR_CONST.ITEM_MACCA] =
-          (uint64_t)((rTotal + 1) * 50000);
-
-      success =
-          characterManager->PayCompressibleItems(client, compressibleItemCosts);
-    }
-
-    if (success) {
-      // Add the bonus
-      newIdx = (size_t)(reunionIdx * 8 + rTotal);
-      demon->SetMitamaReunion(newIdx, (uint8_t)bonusID);
-      characterManager->CalculateDemonBaseStats(demon);
-
-      auto dbChanges =
-          libcomp::DatabaseChangeSet::Create(state->GetAccountUID());
-      dbChanges->Update(demon);
-
       // Delete the mitama
       int8_t slot = mitama->GetBoxSlot();
       auto box = std::dynamic_pointer_cast<objects::DemonBox>(
@@ -164,28 +100,21 @@ void HandleMitamaReunion(const std::shared_ptr<ChannelServer> server,
       }
 
       server->GetWorldDatabase()->QueueChangeSet(dbChanges);
-
-      dState->UpdateDemonState(definitionManager);
-      server->GetTokuseiManager()->Recalculate(
-          cState, true, std::set<int32_t>{dState->GetEntityID()});
-      characterManager->RecalculateStats(dState, client);
     }
   }
 
-  libcomp::Packet reply;
-  reply.WritePacketCode(ChannelToClientPacketCode_t::PACKET_MITAMA_REUNION);
-  reply.WriteS8(success ? 0 : -1);
-  reply.WriteS8(reunionIdx);
-  reply.WriteS8((int8_t)newIdx);
-  reply.WriteU8((uint8_t)bonusID);
+  if (!success) {
+    // Send a packet indicating failure to the client. Success would have the
+    // packet sent in DoMitamaReunion.
+    libcomp::Packet reply;
+    reply.WritePacketCode(ChannelToClientPacketCode_t::PACKET_MITAMA_REUNION);
+    reply.WriteS8(success ? 0 : -1);
+    reply.WriteS8(reunionIdx);
+    reply.WriteS8((int8_t)0);   // Normally newIdx
+    reply.WriteU8((uint8_t)0);  // Normally bonusID
 
-  if (success) {
-    characterManager->GetEntityStatsPacketData(
-        reply, demon->GetCoreStats().Get(), dState, 1);
-    reply.WriteS8(0);
+    client->SendPacket(reply);
   }
-
-  client->SendPacket(reply);
 }
 
 bool Parsers::MitamaReunion::Parse(

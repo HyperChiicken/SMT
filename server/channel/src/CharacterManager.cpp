@@ -127,6 +127,28 @@
 
 using namespace channel;
 
+namespace libcomp {
+template <>
+BaseScriptEngine& BaseScriptEngine::Using<CharacterManager>() {
+  if (!BindingExists("CharacterManager", true)) {
+    Sqrat::Class<CharacterManager, Sqrat::NoConstructor<CharacterManager>>
+        binding(mVM, "CharacterManager");
+    Using<CharacterState>();
+
+    binding
+        .Func<bool (CharacterManager::*)(const std::shared_ptr<CharacterState>&,
+                                         uint8_t, int8_t)>(
+            "DoMitamaReunion", &CharacterManager::DoMitamaReunion)
+        .Func("GetMitamaReunionDetails",
+              &CharacterManager::GetMitamaReunionDetails);
+
+    Bind<CharacterManager>("CharacterManager", binding);
+  }
+
+  return *this;
+}
+}  // namespace libcomp
+
 CharacterManager::CharacterManager(const std::weak_ptr<ChannelServer>& server)
     : mServer(server) {}
 
@@ -3787,6 +3809,159 @@ bool CharacterManager::IsMitamaDemon(
     const std::shared_ptr<objects::MiDevilData>& devilData) {
   return devilData && (devilData->GetUnionData()->GetFusionOptions() &
                        FUSION_OPTION_MITAMA) != 0;
+}
+
+int8_t CharacterManager::GetMitamaReunionDetails(
+    const std::shared_ptr<CharacterState>& cState, int8_t growthType,
+    int8_t mitamaType) {
+  if (growthType < -1 || growthType > 11 || mitamaType < -1 || mitamaType > 3) {
+    // Illegal parameters.
+    return -1;
+  }
+
+  auto server = mServer.lock();
+  auto client = server->GetManagerConnection()->GetEntityClient(
+      cState->GetEntityID(), false);
+  auto state = client->GetClientState();
+  auto dState = state->GetDemonState();
+  auto demon = dState->GetEntity();
+  auto mReunion = demon->GetMitamaReunion();
+
+  size_t indexStart = (growthType > -1) ? (size_t)(growthType * 8) : (size_t)0;
+  size_t indexEnd = (growthType > -1) ? (size_t)(indexStart + 8) : (size_t)96;
+  int8_t rTotal = 0;
+
+  for (size_t i = indexStart; i < indexEnd; i++) {
+    if (mReunion[i] &&
+        (mitamaType < 0 || mitamaType == (int8_t)(mReunion[i] / 32))) {
+      rTotal++;
+    }
+  }
+
+  return rTotal;
+}
+
+bool CharacterManager::DoMitamaReunion(
+    const std::shared_ptr<CharacterState>& cState, uint8_t mitamaIdx,
+    int8_t reunionIdx,
+    const std::shared_ptr<libcomp::DatabaseChangeSet>& _changes,
+    bool immediatelyProcessChanges) {
+  auto server = mServer.lock();
+  auto definitionManager = server->GetDefinitionManager();
+
+  auto client = server->GetManagerConnection()->GetEntityClient(
+      cState->GetEntityID(), false);
+  auto state = client->GetClientState();
+  auto dState = state->GetDemonState();
+  auto demon = dState->GetEntity();
+  auto demonData = dState->GetDevilData();
+
+  int8_t bonusID = 0;
+  size_t newIdx = 0;
+
+  uint8_t mPoints = (uint8_t)(demon ? (12 + demon->GetMitamaRank()) : 0);
+
+  auto reunion = demon->GetReunion();
+  auto mReunion = demon->GetMitamaReunion();
+
+  // Check default growth type rank 1
+  auto defaultGrowthType = definitionManager->GetDevilLVUpRateData(
+      demonData->GetGrowth()->GetGrowthType());
+  if (defaultGrowthType && defaultGrowthType->GetGroupID() > 0 &&
+      reunion[(size_t)(defaultGrowthType->GetGroupID() - 1)] == 0) {
+    reunion[(size_t)(defaultGrowthType->GetGroupID() - 1)] = 1;
+  }
+
+  int8_t rTotal = 0;
+  std::array<uint8_t, 4> mitamaTotals = {{0, 0, 0, 0}};
+  for (size_t i = 0; i < 96; i++) {
+    uint8_t bonus = mReunion[i];
+    if (bonus) {
+      uint8_t idx = (uint8_t)(bonus / 32);
+      mitamaTotals[idx]++;
+
+      if ((int32_t)(i / 8) == (int32_t)reunionIdx) {
+        rTotal++;
+      }
+    }
+  }
+
+  bool success =
+      mitamaTotals[mitamaIdx] < mPoints && rTotal < reunion[(size_t)reunionIdx];
+
+  if (success) {
+    // Generate bonus
+    uint32_t startIdx = (uint32_t)(mitamaIdx * 32);
+
+    std::list<std::shared_ptr<objects::MiMitamaReunionBonusData>> bonuses;
+    for (uint32_t i = startIdx; i < (uint32_t)(startIdx + 32); i++) {
+      auto bonus = definitionManager->GetMitamaReunionBonusData(i);
+      if (bonus && bonus->GetValue() > 0) {
+        bonuses.push_back(bonus);
+      }
+    }
+
+    auto bonus = libcomp::Randomizer::GetEntry(bonuses);
+    if (bonus) {
+      bonusID = (int8_t)bonus->GetID();
+    } else {
+      success = false;
+    }
+  }
+
+  if (success) {
+    // Request valid, pay the cost
+    std::unordered_map<uint32_t, uint64_t> compressibleItemCosts;
+    compressibleItemCosts[SVR_CONST.ITEM_MACCA] =
+        (uint64_t)((rTotal + 1) * 50000);
+
+    success = PayCompressibleItems(client, compressibleItemCosts);
+  }
+
+  if (success) {
+    // Add the bonus
+    newIdx = (size_t)(reunionIdx * 8 + rTotal);
+    demon->SetMitamaReunion(newIdx, (uint8_t)bonusID);
+    CalculateDemonBaseStats(demon);
+
+    auto changes =
+        _changes ? _changes
+                 : libcomp::DatabaseChangeSet::Create(state->GetAccountUID());
+    changes->Update(demon);
+
+    if (immediatelyProcessChanges) {
+      if (server->GetWorldDatabase()->ProcessChangeSet(changes)) {
+        int8_t slot = demon->GetBoxSlot();
+        auto box = std::dynamic_pointer_cast<objects::DemonBox>(
+            libcomp::PersistentObject::GetObjectByUUID(demon->GetDemonBox()));
+
+        if (box) {
+          SendDemonBoxData(client, box->GetBoxID(), {slot});
+        }
+      } else {
+        return false;
+      }
+    }
+
+    dState->UpdateDemonState(definitionManager);
+    server->GetTokuseiManager()->Recalculate(
+        cState, true, std::set<int32_t>{dState->GetEntityID()});
+    RecalculateStats(dState, client);
+
+    // Send the notification of a successful Mitama Reunion.
+    libcomp::Packet reply;
+    reply.WritePacketCode(ChannelToClientPacketCode_t::PACKET_MITAMA_REUNION);
+    reply.WriteS8(0);  // Success code
+    reply.WriteS8(reunionIdx);
+    reply.WriteS8((int8_t)newIdx);
+    reply.WriteU8((uint8_t)bonusID);
+    GetEntityStatsPacketData(reply, demon->GetCoreStats().Get(), dState, 1);
+    reply.WriteS8(0);
+
+    client->SendPacket(reply);
+  }
+
+  return success;
 }
 
 void CharacterManager::ApplyTDamageSpecial(

@@ -69,6 +69,7 @@ BaseScriptEngine& BaseScriptEngine::Using<ChannelServer>() {
     Import("database");
 
     Using<AIManager>();
+    Using<CharacterManager>();
     Using<ChannelSyncManager>();
     Using<libhack::DefinitionManager>();
     Using<EventManager>();
@@ -84,6 +85,7 @@ BaseScriptEngine& BaseScriptEngine::Using<ChannelServer>() {
         .Func("GetLobbyDatabase", &ChannelServer::GetLobbyDatabase)
         .Func("GetAIManager", &ChannelServer::GetAIManager)
         .Func("GetChannelSyncManager", &ChannelServer::GetChannelSyncManager)
+        .Func("GetCharacterManager", &ChannelServer::GetCharacterManager)
         .Func("GetDefinitionManager", &ChannelServer::GetDefinitionManager)
         .Func("GetEventManager", &ChannelServer::GetEventManager)
         .Func("GetMatchManager", &ChannelServer::GetMatchManager)

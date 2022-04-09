@@ -803,6 +803,49 @@ class CharacterManager {
       const std::shared_ptr<objects::MiDevilData>& devilData);
 
   /**
+   * Utility function to retrieve Mitama Reunion details on the
+   * currently-summoned demon.
+   * @param cState Pointer to the character state
+   * @param growthType What growth path to retrieve the Mitama Reunion amounts
+   * from, -1 means all
+   * @param mitamaType What Mitama type to retrieve the Mitama Reunion amounts
+   * from the given path, -1 means all
+   * @return The requested amount. -1 will be returned in the case of an error.
+   */
+  int8_t GetMitamaReunionDetails(const std::shared_ptr<CharacterState>& state,
+                                 int8_t growthType, int8_t mitamaType);
+
+  /**
+   * Inline function to perform a Mitama Reunion without an optional list
+   * of database changes. Needed to support Squirrel bindings.
+   * @param cState Pointer to the character state
+   * @param mitamaIdx The mitama type
+   * @param reunionIdx The growth path
+   * @return Whether the Mitama Reunion succeeded
+   */
+  inline bool DoMitamaReunion(const std::shared_ptr<CharacterState>& cState,
+                              uint8_t mitamaIdx, int8_t reunionIdx) {
+    return cState ? DoMitamaReunion(cState, mitamaIdx, reunionIdx, {}, true)
+                  : false;
+  }
+
+  /**
+   * Perform a Mitama Reunion.
+   * @param cState Pointer to the character state
+   * @param mitamaIdx The mitama type
+   * @param reunionIdx The growth path
+   * @param changes Database changeset to add the changes to
+   * @param immediatelyProcessChanges Whether to process the database changes
+   * immediately
+   * @return Whether the Mitama Reunion succeeded
+   */
+  bool DoMitamaReunion(
+      const std::shared_ptr<CharacterState>& cState, uint8_t mitamaIdx,
+      int8_t reunionIdx,
+      const std::shared_ptr<libcomp::DatabaseChangeSet>& changes = {},
+      bool immediatelyProcessChanges = false);
+
+  /**
    * Apply special effects that occur as part of the normal regen synced
    * "t-damage" processing that occurs every 10 seconds.
    * @param eState Pointer to the entity that just applied regen
